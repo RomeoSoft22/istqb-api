@@ -7,11 +7,18 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
+use Tests\Concerns\FirmaIdentidad;
 use Tests\TestCase;
 
 class ExamFlowTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, FirmaIdentidad;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->prepararIdentidad();
+    }
 
     public function test_anonymous_exam_supports_exact_multi_select_scoring_and_feedback(): void
     {
@@ -50,17 +57,17 @@ class ExamFlowTest extends TestCase
         $this->assertSame('Explicación',$resumed['questions'][0]['comment_snapshot']);
     }
 
-    public function test_admin_can_authenticate_with_jwt(): void
+    public function test_admin_can_authenticate_with_identidad_jwt(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $this->postJson('/api/auth/login',['email'=>'admin@istqb.local','password'=>'Cambiar123!'])
-            ->assertOk()->assertJsonStructure(['access_token','token_type','expires_in']);
+        $this->withToken($this->tokenIdentidad())->getJson('/api/auth/me')
+            ->assertOk()->assertJsonPath('user.email','ana@juarezcampos.net')->assertJsonFragment(['questions.manage']);
     }
 
     public function test_admin_question_accepts_safe_rich_html_and_returns_real_booleans(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $token=$this->postJson('/api/auth/login',['email'=>'admin@istqb.local','password'=>'Cambiar123!'])->assertOk()->json('access_token');
+        $token=$this->tokenIdentidad();
         $chapterId=DB::table('chapters')->value('id');
         $response=$this->withToken($token)->postJson('/api/admin/questions',[
             'chapter_id'=>$chapterId,'learning_objective_id'=>null,'k_level'=>'K2','status'=>'active','comment'=>'Comentario',
@@ -83,7 +90,7 @@ class ExamFlowTest extends TestCase
     {
         Storage::fake('local');
         $this->seed(DatabaseSeeder::class);
-        $token=$this->postJson('/api/auth/login',['email'=>'admin@istqb.local','password'=>'Cambiar123!'])->assertOk()->json('access_token');
+        $token=$this->tokenIdentidad();
         $upload=$this->withToken($token)->post('/api/admin/question-images',['image'=>UploadedFile::fake()->image('pregunta.png',40,30)])
             ->assertOk()->assertJsonStructure(['url']);
         $url=$upload->json('url');

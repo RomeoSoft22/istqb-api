@@ -39,6 +39,28 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Proveedor de identidad central (identidad.juarezcampos.net). ISTQB es un cliente OAuth confidencial.
+    'identidad' => [
+        // identidad-web (Angular): /authorize y /logout, en el navegador.
+        'url' => rtrim((string) env('IDENTIDAD_URL', 'https://identidad.juarezcampos.net'), '/'),
+        // API de identidad (Laravel): token y JWKS, servidor a servidor.
+        'api_url' => rtrim((string) env('IDENTIDAD_API_URL', rtrim((string) env('IDENTIDAD_URL', 'https://identidad.juarezcampos.net'), '/').'/api'), '/'),
+        'issuer' => rtrim((string) env('IDENTIDAD_ISSUER', env('IDENTIDAD_URL', 'https://identidad.juarezcampos.net')), '/'),
+        'client_id' => env('IDENTIDAD_CLIENT_ID'),
+        'client_secret' => env('IDENTIDAD_CLIENT_SECRET'),
+        'redirect_uri' => env('IDENTIDAD_REDIRECT_URI'),
+        'post_logout_redirect_uri' => env('IDENTIDAD_POST_LOGOUT_URI'),
+        'audience' => env('IDENTIDAD_AUDIENCE', 'ISTQB'),
+        'refresh_cookie' => 'istqb_refresh',
+        'refresh_minutes' => (int) env('IDENTIDAD_REFRESH_MINUTOS', 480),
+        // Rol en identidad (código) => rol local de ISTQB (tabla roles), que define los permisos.
+        'roles' => [
+            'ADMIN' => 'Administrador',
+            'GESTOR' => 'Gestor de preguntas',
+            'AUDITOR' => 'Auditor',
+        ],
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

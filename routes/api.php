@@ -14,9 +14,15 @@ Route::prefix('public')->group(function(){
     Route::post('exam/{number}/finish',[PublicExamController::class,'finish']);
     Route::get('exam/{number}/result',[PublicExamController::class,'result']);
 });
-Route::post('auth/login',[AuthController::class,'login'])->middleware('throttle:5,1');
+// El ingreso se hace en identidad.juarezcampos.net; aquí solo se canjea el código y se renueva el token.
+Route::prefix('auth')->group(function(){
+    Route::get('config',[AuthController::class,'config']);
+    Route::post('exchange',[AuthController::class,'exchange'])->middleware('throttle:20,1');
+    Route::post('refresh',[AuthController::class,'refresh'])->middleware('throttle:60,1');
+    Route::post('logout',[AuthController::class,'logout']);
+});
 Route::middleware('auth:api')->group(function(){
-    Route::get('auth/me',[AuthController::class,'me']); Route::post('auth/refresh',[AuthController::class,'refresh']); Route::post('auth/logout',[AuthController::class,'logout']);
+    Route::get('auth/me',[AuthController::class,'me']);
     Route::prefix('admin')->group(function(){
         Route::get('dashboard',[AdminController::class,'dashboard']); Route::get('catalogs',[AdminController::class,'catalogs']);
         Route::middleware('permission:questions.manage')->group(function(){
@@ -29,10 +35,6 @@ Route::middleware('auth:api')->group(function(){
         });
         Route::middleware('permission:exam.configure')->group(function(){
             Route::get('configuration',[AdminController::class,'configuration']); Route::put('configuration',[AdminController::class,'saveConfiguration']);
-        });
-        Route::middleware('permission:users.manage')->group(function(){
-            Route::get('users',[AdminController::class,'users']); Route::post('users',[AdminController::class,'saveUser']); Route::put('users/{id}',[AdminController::class,'saveUser']);
-            Route::patch('users/{id}/status',[AdminController::class,'setUserStatus']);
         });
         Route::middleware('permission:reports.view')->group(function(){
             Route::get('reports',[AdminController::class,'reports']); Route::get('reports/{id}',[AdminController::class,'report']);

@@ -39,7 +39,7 @@ return [
 
     'guards' => [
         'api' => [
-            'driver' => 'jwt',
+            'driver' => 'identidad', // ver AppServiceProvider
             'provider' => 'users',
         ],
         'web' => [

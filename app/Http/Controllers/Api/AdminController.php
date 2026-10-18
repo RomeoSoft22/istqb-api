@@ -176,43 +176,6 @@ class AdminController extends Controller
         $this->audit($request,'question.deleted','questions',$id); return response()->json(['deleted'=>true]);
     }
 
-    public function users(): JsonResponse
-    {
-        return response()->json(DB::table('users as u')
-            ->leftJoin('user_roles as ur','ur.user_id','=','u.id')
-            ->leftJoin('roles as r','r.id','=','ur.role_id')
-            ->whereNull('u.deleted_at')
-            ->select('u.id','u.name','u.email','u.status','u.last_login_at','u.created_at','r.id as role_id','r.name as role_name')
-            ->orderBy('u.name')->paginate(25));
-    }
-
-    public function saveUser(Request $request,?int $id=null): JsonResponse
-    {
-        $rules=['name'=>['required','string','max:255'],'email'=>['required','email',Rule::unique('users')->ignore($id)],
-            'status'=>['required',Rule::in(['active','inactive','blocked'])],'role_id'=>['required','exists:roles,id'],
-            'password'=>[$id?'nullable':'required','string','min:10']];
-        $data=$request->validate($rules);
-        if($id===$request->user()->id && $data['status']!=='active')throw ValidationException::withMessages(['status'=>'No puede dar de baja a su propio usuario.']);
-        $roleId=$data['role_id'];unset($data['role_id']);
-        if(empty($data['password']))unset($data['password']); else $data['password']=Hash::make($data['password']);
-        $user=DB::transaction(function()use($data,$id,$roleId,$request){
-            $user=$id?User::query()->findOrFail($id):new User;$user->fill($data);$user->save();
-            DB::table('user_roles')->where('user_id',$user->id)->delete();
-            DB::table('user_roles')->insert(['user_id'=>$user->id,'role_id'=>$roleId]);
-            $this->audit($request,$id?'user.updated':'user.created','users',$user->id);return $user;
-        });
-        return response()->json($user,$id?200:201);
-    }
-
-    public function setUserStatus(Request $request,int $id): JsonResponse
-    {
-        $data=$request->validate(['status'=>['required',Rule::in(['active','inactive','blocked'])]]);
-        if($id===$request->user()->id && $data['status']!=='active')throw ValidationException::withMessages(['status'=>'No puede dar de baja a su propio usuario.']);
-        $user=User::query()->findOrFail($id);$user->status=$data['status'];$user->save();
-        $this->audit($request,'user.status.updated','users',$id);
-        return response()->json(['id'=>$id,'status'=>$user->status]);
-    }
-
     public function reports(Request $request): JsonResponse
     {
         $query=DB::table('exam_attempts')->orderByDesc('started_at');
